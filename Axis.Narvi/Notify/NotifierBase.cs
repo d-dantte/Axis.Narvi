@@ -33,11 +33,11 @@ namespace Axis.Narvi.Notify
         {
             add
             {
-                _propChanged += value.IsWeakCallback<PropertyChangedEventHandler>() ?
+                _propChanged += value.IsWeakCallback<PropertyChangedEventArgs>() ?
                                 value :
-                                new WeakCallback<PropertyChangedEventHandler>(value, this, self => _propChanged -= self.Invoke).Invoke;
+                                new WeakCallback<PropertyChangedEventArgs>(value, this, self => _propChanged -= self.Invoke).Invoke;
             }
-            remove { WeakCallback<PropertyChangedEventHandler>.Remove(_propChanged, value); }
+            remove { WeakCallback<PropertyChangedEventArgs>.Remove(_propChanged, value); }
         }
         #endregion
 
