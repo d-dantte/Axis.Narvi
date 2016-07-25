@@ -6,15 +6,8 @@ using System.Threading.Tasks;
 
 namespace Axis.Narvi.Notify
 {
-    public class NotifyRegistrar
+    public interface INotificationSubscription
     {
-        private Action _unregister = null;
-
-        internal NotifyRegistrar(Action r)
-        {
-            _unregister = r;
-        }
-
-        public void Unregister() => _unregister?.Invoke();
+        void Unsubscribe();
     }
 }

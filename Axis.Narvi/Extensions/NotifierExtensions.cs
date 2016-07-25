@@ -17,12 +17,24 @@ namespace Axis.Narvi.Extensions
 
     public static class NotifierExtensions
     {
-        public static bool IsWeakCallback<D>(this Delegate @delegate)
-        where D : class => @delegate?.Target is WeakCallback<D>;
+
+        public static object TrueTarget(this Delegate del)
+        {
+            if (del.Target.Is<Delegate>()) return (del.Target as Delegate).TrueTarget();
+            else return del.Target;
+        }
+        public static MethodInfo TrueMethod(this Delegate del)
+        {
+            if (del.Target.Is<Delegate>()) return (del.Target as Delegate).TrueMethod();
+            else return del.Method;
+        }
+
+        public static bool IsWeakCallback<EventArg>(this Delegate @delegate)
+            => @delegate?.Target is WeakCallback<EventArg>;
 
         public static bool IsWeakCallback(this Delegate @delegate)
         {
-            var tt = @delegate.Target?.GetType();
+            var tt = @delegate.TrueTarget()?.GetType();
 
             if (tt == null) return false;
 
@@ -30,66 +42,53 @@ namespace Axis.Narvi.Extensions
                         tt.GetGenericTypeDefinition() == typeof(WeakCallback<>);
         }
 
-        public static NotifyRegistrar NotifyFor(this INotifyPropertyChanged @this,
-                                                     string property,
-                                                     PropertyChangedEventHandler action)
+        public static INotificationSubscription NotifyFor(this INotifyPropertyChanged @this,
+                                                          string property,
+                                                          PropertyChangedEventHandler action)
             => @this.NotifyFor(property.Enumerate(), action);
 
-        public static NotifyRegistrar NotifyFor(this INotifyPropertyChanged @this,
-                                                     IEnumerable<string> properties,
-                                                     PropertyChangedEventHandler action)
+        public static INotificationSubscription NotifyFor(this INotifyPropertyChanged @this,
+                                                          IEnumerable<string> properties,
+                                                          PropertyChangedEventHandler action)
             => @this.NotifyFor(prop => properties.Contains(prop), action);
 
-        public static NotifyRegistrar NotifyFor(this INotifyPropertyChanged @this,
-                                                     Func<string, bool> predicate,
-                                                     PropertyChangedEventHandler action)
+        public static INotificationSubscription NotifyFor(this INotifyPropertyChanged @this,
+                                                          Func<string, bool> predicate,
+                                                          PropertyChangedEventHandler action)
         {
             ThrowNullArguments(() => predicate, () => action);
 
-            PropertyChangedEventHandler wrapper = (x, y) => { if (predicate(y.PropertyName)) action(x, y); };
-            PropertyChangedEventHandler handler = null;
-            if (@this is NotifierBase)
-                @this.PropertyChanged += handler =
-                                          lifetime == CallbackLifetime.SourceDependent ?
-                                          wrapper :
-                                          ManagedCallback(lifetime, wrapper, gdel => @this.PropertyChanged -= gdel);
+            PropertyChangedEventHandler h = (source, args) => args.PipeIf(_args => predicate(_args.PropertyName), _args => action(source, _args));
 
-            else @this.PropertyChanged += handler = ManagedCallback(lifetime, wrapper, gdel => @this.PropertyChanged -= gdel);
+            var callback = new WeakCallback<PropertyChangedEventArgs>(h, d => @this.PropertyChanged -= d.Invoke);
+            @this.PropertyChanged += callback.Invoke;
 
-            return new NotifyRegistrar(() => @this.PropertyChanged -= handler);
+            return callback;
         }
 
-
-        public static NotifyRegistrar NotifyForPath<Source>(this Source @this,
-                                                             Expression<Func<Source, object>> propertyAccessPath,
-                                                             PropertyChangedEventHandler action)
-        where Source : class, INotifyPropertyChanged => @this.NotifyForPath(CallbackLifetime.SourceDependent, propertyAccessPath, action);
-
-        public static NotifyRegistrar NotifyForPath<Source>(this Source @this,
-                                                             CallbackLifetime lifetime,
-                                                             Expression<Func<Source, object>> propertyAccessPath,
-                                                             PropertyChangedEventHandler action)
-        where Source : class, INotifyPropertyChanged
-        {
-            var pcn = new PropertyChainNotifier<Source>(@this, propertyAccessPath, (s, e) => action.Invoke(s, e.As<PropertyChangedEventArgs>()));
-            return new NotifyRegistrar(() => pcn.StopNotification());
-        }
+        
+        public static INotificationSubscription NotifyForPath<Source>(this Source @this,
+                                                                      Expression<Func<Source, object>> propertyAccessPath,
+                                                                      PropertyChangedEventHandler action)
+        where Source : class, INotifyPropertyChanged => new PropertyChainNotifier<Source>(@this, propertyAccessPath, (s, e) => action.Invoke(s, e.As<PropertyChangedEventArgs>()));
 
 
-        public static NotifyRegistrar NotifyFor(this INotifyCollectionChanged @this,
+        public static INotificationSubscription NotifyFor(this INotifyCollectionChanged @this,
                                                      NotifyCollectionChangedEventHandler action)
             => @this.NotifyFor(null, action);
 
-        public static NotifyRegistrar NotifyFor(this INotifyCollectionChanged @this,
-                                                     NotifyCollectionChangedAction? changeType,
-                                                     NotifyCollectionChangedEventHandler action)
+        public static INotificationSubscription NotifyFor(this INotifyCollectionChanged @this,
+                                                          NotifyCollectionChangedAction? changeType,
+                                                          NotifyCollectionChangedEventHandler action)
         {
             ThrowNullArguments(() => action);
 
-            NotifyCollectionChangedEventHandler wrapper = (x, y) => changeType.PipeIf(ct => ct == null || ct == y.Action, ct => action(x, y));
-            NotifyCollectionChangedEventHandler handler = ManagedCallback(lifetime, wrapper, gdel => @this.CollectionChanged -= gdel);
-            @this.CollectionChanged += handler;
-            return new NotifyRegistrar(() => @this.CollectionChanged -= handler);
+            NotifyCollectionChangedEventHandler handler = (x, y) => changeType.PipeIf(ct => ct == null || ct == y.Action, ct => action(x, y));
+
+            var callback = new WeakCallback<NotifyCollectionChangedEventArgs>(handler, d => @this.CollectionChanged -= d.Invoke);
+            @this.CollectionChanged += callback.Invoke;
+
+            return callback;
         }
 
         public static bool IsPropertyAttached(this NotifierBase target, Expression<Func<object>> property, string prefix = null)

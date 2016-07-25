@@ -33,11 +33,12 @@ namespace Axis.Narvi.Notify
         {
             add
             {
-                _propChanged += value.IsWeakCallback<PropertyChangedEventArgs>() ?
-                                value :
-                                new WeakCallback<PropertyChangedEventArgs>(value, this, self => _propChanged -= self.Invoke).Invoke;
+                _propChanged += new WeakCallback<PropertyChangedEventArgs>(value, d => _propChanged -= d.As<PropertyChangedEventHandler>()).Invoke;
             }
-            remove { WeakCallback<PropertyChangedEventArgs>.Remove(_propChanged, value); }
+            remove
+            {
+                _propChanged =  WeakCallback.RemoveWeakCallback(_propChanged, value);
+            }
         }
         #endregion
 
@@ -109,7 +110,7 @@ namespace Axis.Narvi.Notify
             notifies.ToList().ForEach(pn => notify(pn, notified));
         }
 
-        protected V get<V>([CallerMemberName] string property = null)
+        internal protected V get<V>([CallerMemberName] string property = null)
         {
             if (values.ContainsKey(property))
             {
@@ -125,7 +126,7 @@ namespace Axis.Narvi.Notify
             else return oldvalues[property];
         }
 
-        protected void set<V>(ref V value, [CallerMemberName] string property = null)
+        internal protected void set<V>(ref V value, [CallerMemberName] string property = null)
         {
             if (!values.ContainsKey(property))
             {
@@ -142,7 +143,7 @@ namespace Axis.Narvi.Notify
                 notify(property);
             }
         }
-        protected bool IsSet([CallerMemberName] string property = null) => values.ContainsKey(property ?? "");
+        internal protected bool IsSet([CallerMemberName] string property = null) => values.ContainsKey(property ?? "");
         #endregion
 
 

@@ -10,7 +10,7 @@ using static Axis.Narvi.Extensions.NotifierExtensions;
 
 namespace Axis.Narvi.Notify
 {
-    public class PropertyChainNotifier<Source>
+    public class PropertyChainNotifier<Source>: INotificationSubscription
     where Source: class, INotifyPropertyChanged
     {
 
@@ -31,7 +31,7 @@ namespace Axis.Narvi.Notify
             });
         }
 
-        public void StopNotification() => _head.StopNotification();
+        public void Unsubscribe() => _head.Unsubscribe();
 
         private IEnumerable<string> ExtractPathSegments(Expression accessPath)
             => accessPath is LambdaExpression ?
@@ -46,12 +46,12 @@ namespace Axis.Narvi.Notify
                          .ToArray();
 
 
-        public class PathSegment: NotifierBase
+        public class PathSegment: NotifierBase, INotificationSubscription
         {
             public string Path { get; internal set; } = null;
             private string[] _segments = null;
             private PathSegment _nextSegment = null;
-            private NotifyRegistrar _registrar = null;
+            private INotificationSubscription _registrar = null;
             private DelegatePropertySurrogate pps = null;
             private INotifyPropertyChanged _source = null;
             EqualityComparer<object> Equalizer = EqualityComparer<object>.Default;
@@ -80,7 +80,7 @@ namespace Axis.Narvi.Notify
                 _registrar = (_source = source)?.NotifyFor(_segments.First(), (sender, arg) =>
                 {
                     var ne = arg.As<NotifiedEventArgs>();
-                    if(ne.oldValue != null) _nextSegment?.StopNotification();
+                    if(ne.oldValue != null) _nextSegment?.Unsubscribe();
 
                     //manage notification if possible (if there is a next segment, and @new is not null
                     _nextSegment?.ManageNotification(ne.newValue.As<INotifyPropertyChanged>());
@@ -99,10 +99,10 @@ namespace Axis.Narvi.Notify
             private object SourceValue()
                 => _nextSegment != null ? _nextSegment.SourceValue() : _source?.PropertyValue(Path);
 
-            public void StopNotification()
+            public void Unsubscribe()
             {
-                _nextSegment?.StopNotification();
-                _registrar?.Unregister();
+                _nextSegment?.Unsubscribe();
+                _registrar?.Unsubscribe();
                 _registrar = null;
             }
         }

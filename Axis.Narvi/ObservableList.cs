@@ -173,11 +173,12 @@ namespace Axis.Narvi
         {
             add
             {
-                _collectionChanged += value.IsWeakCallback<NotifyCollectionChangedEventArgs>() ?
-                                      value :
-                                      new WeakCallback<NotifyCollectionChangedEventArgs>(value, this, self => _collectionChanged -= self.Invoke).Invoke;
+                _collectionChanged += new WeakCallback<NotifyCollectionChangedEventArgs>(value, d => _collectionChanged -= d.Invoke).Invoke;
             }
-            remove { WeakCallback<NotifyCollectionChangedEventArgs>.Remove(_collectionChanged, value); }
+            remove
+            {
+                _collectionChanged = WeakCallback.RemoveWeakCallback(_collectionChanged, value);
+            }
         }
 
         #endregion
