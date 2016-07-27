@@ -30,22 +30,6 @@ namespace Axis.Narvi
         {
             if (_collectionChanged == null) return;
 
-            #region old logic
-            ///Create a DispaterAwareObservableList in the Libra project, and ship off the "Dispatcher logic in there, since it depends on the Windowbase.dll assembly
-
-            //foreach (NotifyCollectionChangedEventHandler handler in _collectionChanged.GetInvocationList())
-            //foreach (EventHandler<NotifyCollectionChangedEventArgs> handler in _collectionChanged.GetInvocationList())
-            //{
-            //    var dispatcherObject = handler.TrueTarget() as DispatcherObject;
-            //    //var dispatcherObject = handler.Target as DispatcherObject;
-
-            //    if (dispatcherObject != null && !dispatcherObject.CheckAccess())
-            //        dispatcherObject.Dispatcher.Invoke(DispatcherPriority.DataBind, handler, this, args);
-
-            //    else handler(this, args); // note : this does not execute handler in target thread's context
-            //}
-            #endregion
-
             _collectionChanged.Invoke(this, args);
         }
 
@@ -173,11 +157,11 @@ namespace Axis.Narvi
         {
             add
             {
-                _collectionChanged += new WeakCallback<NotifyCollectionChangedEventArgs>(value, d => _collectionChanged -= d.Invoke).Invoke;
+                _collectionChanged += new ManagedCallback<NotifyCollectionChangedEventHandler, NotifyCollectionChangedEventArgs>(value, d => _collectionChanged -= d.Invoke).Invoke;
             }
             remove
             {
-                _collectionChanged = WeakCallback.RemoveWeakCallback(_collectionChanged, value);
+                _collectionChanged = ManagedCallback.RemoveWeakCallback(_collectionChanged, value);
             }
         }
 

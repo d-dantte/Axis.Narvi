@@ -29,8 +29,8 @@ namespace Axis.Narvi.Extensions
             else return del.Method;
         }
 
-        public static bool IsWeakCallback<EventArg>(this Delegate @delegate)
-            => @delegate?.Target is WeakCallback<EventArg>;
+        public static bool IsWeakCallback<Del, EventArg>(this Delegate @delegate)
+        where Del: class => @delegate?.Target is ManagedCallback<Del, EventArg>;
 
         public static bool IsWeakCallback(this Delegate @delegate)
         {
@@ -39,7 +39,7 @@ namespace Axis.Narvi.Extensions
             if (tt == null) return false;
 
             else return tt.IsGenericType &&
-                        tt.GetGenericTypeDefinition() == typeof(WeakCallback<>);
+                        tt.GetGenericTypeDefinition() == typeof(ManagedCallback<,>);
         }
 
         public static INotificationSubscription NotifyFor(this INotifyPropertyChanged @this,
@@ -60,7 +60,7 @@ namespace Axis.Narvi.Extensions
 
             PropertyChangedEventHandler h = (source, args) => args.PipeIf(_args => predicate(_args.PropertyName), _args => action(source, _args));
 
-            var callback = new WeakCallback<PropertyChangedEventArgs>(h, d => @this.PropertyChanged -= d.Invoke);
+            var callback = new ManagedCallback<PropertyChangedEventHandler, PropertyChangedEventArgs>(h, false, d => @this.PropertyChanged -= d.Invoke);
             @this.PropertyChanged += callback.Invoke;
 
             return callback;
@@ -85,7 +85,7 @@ namespace Axis.Narvi.Extensions
 
             NotifyCollectionChangedEventHandler handler = (x, y) => changeType.PipeIf(ct => ct == null || ct == y.Action, ct => action(x, y));
 
-            var callback = new WeakCallback<NotifyCollectionChangedEventArgs>(handler, d => @this.CollectionChanged -= d.Invoke);
+            var callback = new ManagedCallback<NotifyCollectionChangedEventHandler, NotifyCollectionChangedEventArgs>(handler, false, d => @this.CollectionChanged -= d.Invoke);
             @this.CollectionChanged += callback.Invoke;
 
             return callback;

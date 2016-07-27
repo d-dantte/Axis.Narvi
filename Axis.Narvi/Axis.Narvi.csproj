@@ -51,9 +51,9 @@
     <Compile Include="Notify\NotifiedByAttribute.cs" />
     <Compile Include="Notify\NotifiedEventArgs.cs" />
     <Compile Include="Notify\NotifierBase.cs" />
-    <Compile Include="Notify\NotifyRegistrar.cs" />
+    <Compile Include="Notify\INotificationSubscription.cs" />
     <Compile Include="Notify\PropertySurrogates.cs" />
-    <Compile Include="Notify\WeakCallback.cs" />
+    <Compile Include="Notify\ManagedCallback.cs" />
     <Compile Include="ObservableList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
