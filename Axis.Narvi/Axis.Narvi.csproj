@@ -31,7 +31,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Axis.Luna">
-      <HintPath>..\..\..\Axis.Luna\Axis.Luna\bin\Debug\Axis.Luna.dll</HintPath>
+      <HintPath>..\..\Axis.Luna\Axis.Luna\bin\Debug\Axis.Luna.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
